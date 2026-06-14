@@ -1,0 +1,6 @@
+{
+  "name": "SnaPill",
+  "description": "처방전 사진 분석, 알약 식별 및 상세 정보 안내 서비스 (SnaPill - 스냅필)",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
