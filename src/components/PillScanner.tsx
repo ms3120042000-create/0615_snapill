@@ -7,14 +7,63 @@ import {
 import { PillAnalysisResult } from "../types";
 import { SAMPLE_Tylenol_IMAGE, SAMPLE_PILL_DATA_1, SAMPLE_PILL_DATA_2 } from "../data";
 
+const PRESET_SOO: PillAnalysisResult = {
+  pillName: "S00 센트룸 활력 멀티비타민정",
+  manufacturer: "센트룸 글로벌 웰니스 (Centrum Global)",
+  shape: "장방형 (Oval)",
+  color: "노란색/황금색 (Yellow/Gold)",
+  frontMarking: "S00",
+  backMarking: "없음",
+  formulation: "필름코팅 성상 정제",
+  mainIngredients: "비타민B군 복합체, 미네랄 12종",
+  efficacy: "하루 세포 활력 증진, 만성 피로 완화, 체내 항산화 작용 보조",
+  dosage: "성인 1일 1회 식후 혹은 식사 중에 충분한 물과 함께 복용해 주세요.",
+  warnings: [
+    "고함량 비타민 성분이 포함되어 공복 섭취 시 가벼운 속 쓰림, 울렁거림이 있을 수 있으니 아침 식사 직후에 드시는 것이 가장 위장에 부드럽고 안전합니다.",
+    "성상 흡수 반응에 의해 소변 색상이 일시적으로 선명한 루테인톤 황색을 띨 수 있으나 체내 필수 비타민 방출 작용의 정상 반응이므로 안심하셔도 좋습니다."
+  ]
+};
+
+const PRESET_MEGALIDE: PillAnalysisResult = {
+  pillName: "Megalide Reoer 복합 소염 항생캡슐",
+  manufacturer: "한국아스텔라스 제약 (Astellas Korea)",
+  shape: "타원형 캡슐 (Dual Capsule)",
+  color: "파란색/진남색 (Blue / Dark Indigo)",
+  frontMarking: "MEG",
+  backMarking: "없음",
+  formulation: "경질캡슐형 정제",
+  mainIngredients: "세파클러수화물 250mg (Antibiotic Cefaclor)",
+  efficacy: "중이염, 기관지염, 인후두염 및 비뇨기성 박테리아 염증 치료",
+  dosage: "성인 1회 1캡슐, 1일 3회 정밀하게 8시간씩 간격을 두고 복용합니다.",
+  warnings: [
+    "감염균의 성장을 완벽히 조절하고 세포 내 내성을 방지하기 위해서 발열이나 증세가 소멸했더라도 의사의 처방 일수를 절대적으로 채워 일괄 복용하여야 합니다.",
+    "설사 및 연변 지속 시 복약을 임시 보류하고, 페니실린 또는 세팔로스포린계 외 다른 과민증 알레르기 수치가 높으신 분들은 즉시 복약 전 주치의와 상호 대조하십시오."
+  ]
+};
+
+const PRESET_S80: PillAnalysisResult = {
+  pillName: "S80 분할 해열 진통정",
+  manufacturer: "삼진제약 (Samjin Pharm)",
+  shape: "원형 십자분할형 (Circular Divisible)",
+  color: "하얀색 (White)",
+  frontMarking: "S80",
+  backMarking: "십자무늬 (Cross Section)",
+  formulation: "십자 홈 분할 나정",
+  mainIngredients: "아세트아미노펜 325mg (Acetaminophen 325mg)",
+  efficacy: "두통, 치통, 근육통 및 급성 발열 증세 해열 진통 작용",
+  dosage: "성인 1회 1~2정씩 필요 시 복용합니다. 십자 가이드를 이용해 1/2 또는 1/4씩 쪼개어 저용량 미세 조절 투여가 가능합니다.",
+  warnings: [
+    "속쓰림을 억제하며 공복 복용이 수월하지만, 급격한 간 피로 부담 완화를 위하여 가급적 1일 절대 누계 복용 권장량 4g 한도를 확실히 준수해야 합니다.",
+    "화학 분할 보관 시 쪼갠 부위로 산화 속도가 비약적으로 가속되므로 일주일 분량 이내로 밀폐 건조 보관함을 활용해 보관해 주십시오."
+  ]
+};
+
 interface PillScannerProps {
   onAddHistory: (title: string, data: PillAnalysisResult) => void;
   onOpenAIConsultant: (results: any, initialQuestion?: string) => void;
-  selectedPreset?: any;
-  clearPresetChoice?: () => void;
 }
 
-export default function PillScanner({ onAddHistory, onOpenAIConsultant, selectedPreset, clearPresetChoice }: PillScannerProps) {
+export default function PillScanner({ onAddHistory, onOpenAIConsultant }: PillScannerProps) {
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   
@@ -27,21 +76,6 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant, selected
   const [result, setResult] = useState<PillAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
-
-  useEffect(() => {
-    if (selectedPreset) {
-      setFrontImage(selectedPreset.image || SAMPLE_Tylenol_IMAGE);
-      setBackImage(null);
-      setShapeHint(selectedPreset.shape || "");
-      setColorHint(selectedPreset.color || "");
-      setTextHint(selectedPreset.frontMarking || "");
-      setResult(selectedPreset);
-      onAddHistory(selectedPreset.pillName, selectedPreset);
-      setAdded(true);
-      setError(null);
-      if (clearPresetChoice) clearPresetChoice();
-    }
-  }, [selectedPreset, clearPresetChoice, onAddHistory]);
 
 
   const frontInputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +168,42 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant, selected
     setError(null);
   };
 
+  const loadDemoPill3 = () => {
+    setFrontImage("https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=800");
+    setBackImage(null);
+    setShapeHint("장방형");
+    setColorHint("노란색");
+    setTextHint("S00");
+    setResult(PRESET_SOO);
+    onAddHistory(PRESET_SOO.pillName, PRESET_SOO);
+    setAdded(true);
+    setError(null);
+  };
+
+  const loadDemoPill4 = () => {
+    setFrontImage("https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&q=80&w=800");
+    setBackImage(null);
+    setShapeHint("이중 경질 캡슐");
+    setColorHint("파란색/진남색");
+    setTextHint("MEG");
+    setResult(PRESET_MEGALIDE);
+    onAddHistory(PRESET_MEGALIDE.pillName, PRESET_MEGALIDE);
+    setAdded(true);
+    setError(null);
+  };
+
+  const loadDemoPill5 = () => {
+    setFrontImage("https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=800");
+    setBackImage(null);
+    setShapeHint("십자분할 원형");
+    setColorHint("하얀색");
+    setTextHint("S80");
+    setResult(PRESET_S80);
+    onAddHistory(PRESET_S80.pillName, PRESET_S80);
+    setAdded(true);
+    setError(null);
+  };
+
   const resetAll = () => {
     setFrontImage(null);
     setBackImage(null);
@@ -160,20 +230,41 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant, selected
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-w-xl justify-end">
           <button
             onClick={loadDemoPill1}
-            className="px-3 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1.5 border border-slate-200 text-slate-750 hover:bg-slate-50 transition-colors text-[11px] font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
           >
-            <Sparkles className="w-3 h-3 text-blue-500" />
-            타이레놀 샘플
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            타이레놀500
           </button>
           <button
             onClick={loadDemoPill2}
-            className="px-3 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-1.5 border border-slate-200 text-slate-750 hover:bg-slate-50 transition-colors text-[11px] font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
           >
-            <Sparkles className="w-3 h-3 text-blue-500" />
-            탁센 녹십자 샘플
+            <Sparkles className="w-3 h-3 text-cyan-500" />
+            탁센 녹십자
+          </button>
+          <button
+            onClick={loadDemoPill3}
+            className="px-2.5 py-1.5 border border-slate-200 text-slate-750 hover:bg-slate-50 transition-colors text-[11px] font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+          >
+            <Sparkles className="w-3 h-3 text-amber-400" />
+            S00 멀티비타민
+          </button>
+          <button
+            onClick={loadDemoPill4}
+            className="px-2.5 py-1.5 border border-slate-200 text-slate-750 hover:bg-slate-50 transition-colors text-[11px] font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+          >
+            <Sparkles className="w-3 h-3 text-indigo-500" />
+            Megalide 소염제
+          </button>
+          <button
+            onClick={loadDemoPill5}
+            className="px-2.5 py-1.5 border border-slate-200 text-slate-750 hover:bg-slate-50 transition-colors text-[11px] font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+          >
+            <Sparkles className="w-3 h-3 text-emerald-500" />
+            S80 해열진통
           </button>
           {(frontImage || result) && (
             <button
