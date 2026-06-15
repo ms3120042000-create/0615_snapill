@@ -124,11 +124,22 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant }: PillSc
       });
 
       if (!response.ok) {
-        const errJson = await response.json();
-        throw new Error(errJson.error || "알약 식별 요청 중 장애가 생겼습니다.");
+        let errorMessage = `서버 오류가 발생했습니다. (HTTP ${response.status})`;
+        try {
+          const errJson = await response.json();
+          errorMessage = errJson.error || errorMessage;
+        } catch {
+          // 서버가 JSON이 아닌 응답(HTML 등)을 반환한 경우
+        }
+        throw new Error(errorMessage);
       }
 
-      const resData = await response.json();
+      let resData: any;
+      try {
+        resData = await response.json();
+      } catch {
+        throw new Error("서버 응답을 파싱할 수 없습니다. 서버 상태를 확인해주세요.");
+      }
       if (resData.success && resData.results) {
         setResult(resData.results);
         onAddHistory(resData.results.pillName, resData.results);
