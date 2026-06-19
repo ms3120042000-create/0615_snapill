@@ -239,6 +239,9 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant }: PillSc
           <p className="text-sm text-slate-500 mt-1">
             가지고 계신 낱개 알약의 앞면, 뒷면 사진을 찍으면 각인, 색상, 형태를 분석해 정밀한 약품 정보를 찾아드립니다.
           </p>
+          <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 mt-2 font-medium inline-block">
+            💡 알약 앞면엔 약 이름, 뒷면엔 용량이 있어요. 구분이 어려울 때 사용하세요.
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2 max-w-xl justify-end">
@@ -461,8 +464,26 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant }: PillSc
                   <p className="text-xs text-slate-400 mt-0.5">{result.manufacturer}</p>
                 </div>
 
+                {/* 앞면 / 뒷면 각인 배지 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-600 rounded-2xl p-4 text-center shadow-md shadow-blue-500/20">
+                    <span className="block text-blue-200 text-[10px] font-bold uppercase tracking-wider mb-2">앞면 각인</span>
+                    <span className="text-2xl font-black text-white tracking-widest leading-none">
+                      {result.frontMarking || "—"}
+                    </span>
+                    <span className="block text-blue-200 text-[10px] mt-2">약 이름 · 제조사 표기</span>
+                  </div>
+                  <div className="bg-slate-700 rounded-2xl p-4 text-center shadow-md shadow-slate-500/20">
+                    <span className="block text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">뒷면 각인</span>
+                    <span className="text-2xl font-black text-white tracking-widest leading-none">
+                      {result.backMarking || "없음"}
+                    </span>
+                    <span className="block text-slate-400 text-[10px] mt-2">용량 · 분할선 표기</span>
+                  </div>
+                </div>
+
                 {/* Grid detailing physical properties */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-3 gap-2.5">
                   <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-center">
                     <span className="block text-[10px] text-slate-400 font-medium">형태</span>
                     <span className="text-xs font-semibold text-slate-800">{result.shape}</span>
@@ -474,10 +495,6 @@ export default function PillScanner({ onAddHistory, onOpenAIConsultant }: PillSc
                   <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-center">
                     <span className="block text-[10px] text-slate-400 font-medium">제형</span>
                     <span className="text-xs font-semibold text-slate-800 truncate block px-0.5">{result.formulation}</span>
-                  </div>
-                  <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-center">
-                    <span className="block text-[10px] text-slate-400 font-medium">음각문자</span>
-                    <span className="text-xs font-semibold text-blue-600">{result.frontMarking || "기재없음"}</span>
                   </div>
                 </div>
 

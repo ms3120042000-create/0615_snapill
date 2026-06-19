@@ -203,16 +203,17 @@ export default function App() {
                 <span>처방전 사진 분석하기</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setActiveTab("pill");
                   setTimeout(() => {
                     document.getElementById("tabs-mount-anchor")?.scrollIntoView({ behavior: "smooth" });
                   }, 100);
-                }} 
-                className="px-5 py-2.5 bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 hover:text-white font-bold text-xs rounded-full transition-all cursor-pointer"
+                }}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 font-bold text-xs text-white rounded-xl shadow-lg shadow-blue-500/25 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                알약 식별 촬영기
+                <span>알약 식별하기</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
