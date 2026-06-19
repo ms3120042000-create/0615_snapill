@@ -1,11 +1,22 @@
 import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  FileText, Upload, Calendar, Building, Sparkles, CheckCircle2, 
-  AlertCircle, HelpCircle, RefreshCw, Layers, Plus, ShoppingBag, Eye 
+import {
+  FileText, Upload, Calendar, Building, Sparkles, CheckCircle2,
+  AlertCircle, RefreshCw, Layers, Eye, Share2, ShieldAlert, ShieldCheck, ShieldX
 } from "lucide-react";
 import { PrescriptionAnalysisResult } from "../types";
 import { SAMPLE_PRESCRIPTION_IMAGE, SAMPLE_PRESCRIPTION_DATA } from "../data";
+
+interface InteractionResult {
+  riskLevel: "high" | "medium" | "low" | "none";
+  interactions: {
+    drugs: string[];
+    severity: "high" | "medium" | "low";
+    description: string;
+    recommendation: string;
+  }[];
+  summary: string;
+}
 
 interface PrescriptionAnalyzerProps {
   onAddHistory: (title: string, data: PrescriptionAnalysisResult) => void;
@@ -19,6 +30,9 @@ export default function PrescriptionAnalyzer({ onAddHistory, onOpenAIConsultant 
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [addedToHistory, setAddedToHistory] = useState(false);
+  const [interactionResult, setInteractionResult] = useState<InteractionResult | null>(null);
+  const [checkingInteraction, setCheckingInteraction] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,6 +146,47 @@ export default function PrescriptionAnalyzer({ onAddHistory, onOpenAIConsultant 
     setResult(null);
     setError(null);
     setAddedToHistory(false);
+    setInteractionResult(null);
+  };
+
+  const checkInteraction = async () => {
+    if (!result?.drugs?.length) return;
+    setCheckingInteraction(true);
+    try {
+      const res = await fetch("/api/interaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drugs: result.drugs }),
+      });
+      const data = await res.json();
+      if (data.success) setInteractionResult(data.result);
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setCheckingInteraction(false);
+    }
+  };
+
+  const shareResult = async () => {
+    if (!result) return;
+    const text = [
+      `[스냅필 처방전 분석]`,
+      `병원: ${result.institutionName || "미확인"}`,
+      `처방일: ${result.prescriptionDate || ""}`,
+      ``,
+      `처방 약품 (${result.drugs?.length || 0}종):`,
+      ...(result.drugs?.map((d) => `• ${d.name} — ${d.efficacy || d.category || ""}`) || []),
+      ``,
+      `스냅필에서 처방전을 쉽게 분석해보세요 👉 https://0615-snapill.vercel.app`,
+    ].join("\n");
+
+    if (navigator.share) {
+      await navigator.share({ title: "스냅필 처방전 분석 결과", text });
+    } else {
+      await navigator.clipboard.writeText(text);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2500);
+    }
   };
 
   return (
@@ -389,23 +444,104 @@ export default function PrescriptionAnalyzer({ onAddHistory, onOpenAIConsultant 
                   </ul>
                 </div>
 
-                {/* Interactive Consultation / History Saving Trigger */}
+                {/* Interaction Check Result */}
+                <AnimatePresence>
+                  {interactionResult && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      className={`p-4 rounded-xl border ${
+                        interactionResult.riskLevel === "high"
+                          ? "bg-red-50 border-red-200"
+                          : interactionResult.riskLevel === "medium"
+                          ? "bg-amber-50 border-amber-200"
+                          : "bg-green-50 border-green-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {interactionResult.riskLevel === "none" || interactionResult.riskLevel === "low" ? (
+                          <ShieldCheck className="w-4 h-4 text-green-600" />
+                        ) : interactionResult.riskLevel === "medium" ? (
+                          <ShieldAlert className="w-4 h-4 text-amber-600" />
+                        ) : (
+                          <ShieldX className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className={`text-sm font-bold ${
+                          interactionResult.riskLevel === "high" ? "text-red-700"
+                          : interactionResult.riskLevel === "medium" ? "text-amber-700"
+                          : "text-green-700"
+                        }`}>
+                          {interactionResult.riskLevel === "none" ? "상호작용 없음"
+                            : interactionResult.riskLevel === "low" ? "낮은 위험"
+                            : interactionResult.riskLevel === "medium" ? "주의 필요"
+                            : "위험 상호작용 감지"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed mb-2">{interactionResult.summary}</p>
+                      {interactionResult.interactions.map((ia, i) => (
+                        <div key={i} className="mt-2 p-2.5 bg-white/70 rounded-lg border border-slate-200/50">
+                          <p className="text-[11px] font-bold text-slate-700">{ia.drugs.join(" + ")}</p>
+                          <p className="text-[11px] text-slate-600 mt-0.5">{ia.description}</p>
+                          <p className="text-[11px] text-blue-600 font-medium mt-0.5">→ {ia.recommendation}</p>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Action Buttons */}
                 <div className="flex flex-col md:flex-row gap-2 pt-2">
                   <button
                     onClick={() => onOpenAIConsultant(result, "처방전에 위장약이나 항생제가 포함되어 있는데 식후 바로 먹어야 하나요?")}
                     className="flex-1 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-indigo-200/50"
                   >
                     <Sparkles className="w-4 h-4" />
-                    AI 약사에게 식습관 연관 복용상담 구하기
+                    AI 약사 복용 상담
                   </button>
 
-                  {addedToHistory && (
-                    <div className="py-2 px-3 text-blue-600 bg-blue-50 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-blue-200">
-                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                      내 복약 수첩 기록 저장됨
-                    </div>
-                  )}
+                  <button
+                    onClick={checkInteraction}
+                    disabled={checkingInteraction}
+                    className="flex-1 py-3 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-amber-200/50 disabled:opacity-60"
+                  >
+                    {checkingInteraction ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ShieldAlert className="w-4 h-4" />
+                    )}
+                    {checkingInteraction ? "체크 중..." : "상호작용 체크"}
+                  </button>
+
+                  <button
+                    onClick={shareResult}
+                    className="py-3 px-4 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer border border-yellow-300"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    공유
+                  </button>
                 </div>
+
+                {/* Share Toast */}
+                <AnimatePresence>
+                  {shareToast && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-center text-xs text-slate-500 bg-slate-100 py-2 rounded-lg"
+                    >
+                      클립보드에 복사됐습니다. 카카오톡에 붙여넣기 해주세요.
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {addedToHistory && (
+                  <div className="py-2 px-3 text-blue-600 bg-blue-50 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 border border-blue-200">
+                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                    내 복약 수첩 기록 저장됨
+                  </div>
+                )}
 
               </div>
             ) : (
